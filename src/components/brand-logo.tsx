@@ -1,5 +1,5 @@
-import blueLogo from "@/assets/sabas-marin-blue.png.asset.json";
-import whiteLogo from "@/assets/sabas-marin-white.png.asset.json";
+import blueLogo from "@/assets/sabas-marin-blue.png";
+import whiteLogo from "@/assets/sabas-marin-white.png";
 import { cn } from "@/lib/utils";
 
 export function BrandLogo({ inverse = false, className }: { inverse?: boolean; className?: string }) {
