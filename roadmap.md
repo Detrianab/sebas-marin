@@ -1,0 +1,12 @@
+# Roadmap
+- [x] Configurar acceso por correo y base privada
+- [x] Instalar piezas oficiales del asesor y animaciones
+- [x] Construir portada, cotizador y pie cinematográfico
+- [x] Conectar asesor virtual con conversaciones privadas
+- [ ] Configurar entrega de solicitudes por correo y WhatsApp
+- [x] Validar móvil, escritorio y funcionamiento final
+- [x] Elevar la portada a una experiencia luxury cinematográfica
+- [x] Añadir asesor flotante sin registro y mapa interactivo
+- [x] Corregir solapamientos y bloques visuales en móvil
+- [x] Ajustar preloader luxury a cinco segundos
+- [x] Optimizar carga y validar nuevamente en móvil y escritorio

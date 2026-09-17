@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AdvisorThreadPage } from "@/components/advisor-page";
+export const Route = createFileRoute("/asesor/$threadId")({ head: () => ({ meta: [{ title: "Conversación privada | Sabas Marin" }, { name: "description", content: "Conversación privada con el asesor virtual de Sabas Marin." }, { property: "og:title", content: "Conversación privada | Sabas Marin" }, { property: "og:description", content: "Tu orientación aseguradora, disponible 24/7." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: AdvisorThreadPage });

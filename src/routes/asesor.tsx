@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AdvisorLanding } from "@/components/advisor-page";
+export const Route = createFileRoute("/asesor")({ head: () => ({ meta: [{ title: "Asesor virtual 24/7 | Sabas Marin" }, { name: "description", content: "Consulta tus dudas de seguros con el asesor virtual de Sabas Marin." }, { property: "og:title", content: "Asesor virtual 24/7 | Sabas Marin" }, { property: "og:description", content: "Orientación aseguradora privada y disponible en todo momento." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component: AdvisorLanding });

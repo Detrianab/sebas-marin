@@ -1,0 +1,51 @@
+import { useMemo, useState } from "react";
+import { Link, useSearch } from "@tanstack/react-router";
+import { ArrowLeft, ArrowRight, Check, Plus, Send } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { services } from "@/lib/site-data";
+import { BrandLogo } from "./brand-logo";
+
+const coverageMap: Record<string, string[]> = {
+  hogar: ["Robo, asalto o hurto", "Terremoto", "Infidelidad de empleado", "Rotura de vidrios", "Inundación", "Tarjetas", "Daños electrónicos", "Responsabilidad civil locativo/vecinos", "Accidentes personales"],
+  empresa: ["Robo, asalto y daños al local", "Agua", "Inundación", "Motín y disturbios", "Terremoto", "Vidrios y anuncios", "Bienes refrigerados", "Pérdida de renta", "Mercancía en tránsito", "Daños maliciosos", "Pérdidas indirectas", "Gastos de extinción, demolición, escombros y arquitectos", "Alquileres por siniestro", "Gastos extraordinarios"],
+};
+
+export function QuotePage() {
+  const search = useSearch({ strict: false }) as { ramo?: string };
+  const validInitial: string = services.some((s) => s.id === search.ramo) ? (search.ramo ?? "") : "";
+  const [step, setStep] = useState(validInitial ? 2 : 1); const [ramo, setRamo] = useState(validInitial); const [birthdates, setBirthdates] = useState([""]); const [coverages, setCoverages] = useState<string[]>([]); const [values, setValues] = useState<Record<string, string>>({}); const [consent, setConsent] = useState(false); const [busy, setBusy] = useState(false); const [done, setDone] = useState(false);
+  const service = useMemo(() => services.find((s) => s.id === ramo), [ramo]);
+  const set = (name: string, value: string) => setValues((old) => ({ ...old, [name]: value }));
+  function advance(event: React.FormEvent) { event.preventDefault(); if (!values["name"] || (!values["email"] && !values["phone"])) { toast.error("Indica tu nombre y al menos un medio de contacto."); return; } setStep(3); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  async function send() {
+    if (!consent) { toast.error("Necesitamos tu autorización para contactarte."); return; }
+    setBusy(true); const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from("quote_requests").insert({ user_id: user?.id ?? null, insurance_type: ramo === "funerarios" ? "funerarios" : ramo, insured_name: values["name"] ?? "", email: values["email"] || null, phone: values["phone"] || null, comments: values["comments"] || null, consent: true, details: { ...values, birthdates, coverages } });
+    setBusy(false); if (error) { toast.error("No pudimos guardar la solicitud. Intenta nuevamente."); return; } setDone(true);
+  }
+  const summary = `Hola, soy ${values["name"]}. Solicité una cotización de ${service?.label}. Contacto: ${values["phone"] || values["email"]}.`;
+  if (done) return <main className="flex min-h-screen items-center justify-center bg-secondary p-5"><div className="max-w-xl bg-background p-8 text-center shadow-xl sm:p-12"><span className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check /></span><h1 className="mt-6 text-4xl font-semibold">Solicitud recibida.</h1><p className="mt-4 leading-7 text-muted-foreground">Nuestro equipo revisará tus datos. Para acelerar la atención, envíanos el resumen por WhatsApp.</p><Button asChild size="lg" className="mt-8 w-full"><a href={`https://wa.me/584122715331?text=${encodeURIComponent(summary)}`} target="_blank" rel="noreferrer">Continuar por WhatsApp <Send /></a></Button><Button asChild variant="ghost" className="mt-2"><Link to="/">Volver al inicio</Link></Button></div></main>;
+  return <main className="min-h-screen bg-background"><header className="border-b border-border"><div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-5"><Link to="/"><BrandLogo /></Link><Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft /> Volver</Link></div></header><div className="mx-auto max-w-5xl px-5 py-10 sm:py-16"><div className="flex items-center gap-3 text-xs font-bold uppercase text-muted-foreground"><span className={step >= 1 ? "text-primary" : ""}>01 Ramo</span><span>—</span><span className={step >= 2 ? "text-primary" : ""}>02 Datos</span><span>—</span><span className={step >= 3 ? "text-primary" : ""}>03 Confirmar</span></div>
+    {step === 1 && <section><h1 className="mt-7 text-4xl font-semibold sm:text-6xl">¿Qué quieres proteger?</h1><p className="mt-4 text-muted-foreground">Elige el tipo de solución y prepara tu solicitud en pocos minutos.</p><div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{services.map(({ id, label, icon: Icon }) => <Button key={id} variant="outline" className="h-32 justify-start p-6 text-left text-lg" onClick={() => { setRamo(id); setStep(2); }}><Icon className="mr-3 size-6 text-primary" />{label}</Button>)}</div></section>}
+    {step === 2 && service && <form onSubmit={advance}><button type="button" className="mt-7 text-sm text-primary" onClick={() => setStep(1)}>Cambiar ramo</button><h1 className="mt-3 text-4xl font-semibold">Cotización de {service.label}</h1><div className="mt-10 grid gap-6 sm:grid-cols-2"><Field label="Nombre y apellido" name="name" value={values["name"]} set={set} required /><Field label="Teléfono" name="phone" type="tel" value={values["phone"]} set={set} /><Field label="Correo electrónico" name="email" type="email" value={values["email"]} set={set} />
+      {ramo === "automovil" && <><Field label="Marca, modelo y año" name="vehicle" value={values["vehicle"]} set={set} required /><Choice label="Amparo" name="amparo" options={["Amplia", "Total", "RCV"]} value={values["amparo"]} set={set} /></>}
+      {ramo === "hogar" && <><Choice label="Tipo" name="propertyType" options={["Apartamento", "Casa"]} value={values["propertyType"]} set={set} /><Field label="Dirección del inmueble" name="address" value={values["address"]} set={set} required /></>}
+      {ramo === "empresa" && <><Field label="Empresa" name="company" value={values["company"]} set={set} required /><Field label="Ramo de servicios" name="industry" value={values["industry"]} set={set} required /><Field label="Dirección" name="address" value={values["address"]} set={set} required /></>}
+      {ramo === "salud" && <Choice label="¿Incluir maternidad?" name="maternity" options={["Sí", "No"]} value={values["maternity"]} set={set} />}
+    </div>
+    {["salud", "vida", "funerarios"].includes(ramo) && <div className="mt-8"><Label>Fechas de nacimiento por integrante</Label><div className="mt-3 space-y-3">{birthdates.map((date, i) => <Input key={i} type="date" value={date} onChange={(e) => setBirthdates((dates) => dates.map((d, j) => j === i ? e.target.value : d))} required />)}</div><Button type="button" variant="ghost" className="mt-2" onClick={() => setBirthdates((d) => [...d, ""])}><Plus /> Añadir integrante</Button></div>}
+    {coverageMap[ramo] && <div className="mt-8"><Label>Coberturas adicionales</Label><div className="mt-4 grid gap-3 sm:grid-cols-2">{coverageMap[ramo].map((coverage) => <label key={coverage} className="flex items-start gap-3 border border-border p-3 text-sm"><Checkbox checked={coverages.includes(coverage)} onCheckedChange={(checked) => setCoverages((old) => checked ? [...old, coverage] : old.filter((x) => x !== coverage))} />{coverage}</label>)}</div></div>}
+    <div className="mt-8"><Label htmlFor="comments">Comentarios</Label><Textarea id="comments" className="mt-2 min-h-28" value={values["comments"] ?? ""} onChange={(e) => set("comments", e.target.value)} /></div><Button size="lg" className="mt-8">Revisar solicitud <ArrowRight /></Button></form>}
+    {step === 3 && <section><h1 className="mt-7 text-4xl font-semibold">Revisa antes de enviar.</h1><div className="mt-8 border-y border-border py-6"><Summary label="Protección" value={service?.label ?? ""} /><Summary label="Solicitante" value={values["name"] ?? ""} /><Summary label="Contacto" value={[values["phone"], values["email"]].filter(Boolean).join(" · ")} />{birthdates.filter(Boolean).length > 0 && <Summary label="Integrantes" value={`${birthdates.filter(Boolean).length}`} />}{coverages.length > 0 && <Summary label="Coberturas" value={coverages.join(", ")} />}</div><label className="mt-7 flex items-start gap-3 text-sm leading-6"><Checkbox checked={consent} onCheckedChange={(v) => setConsent(Boolean(v))} />Autorizo a Sabas Marin a usar estos datos para contactarme y gestionar esta solicitud. Entiendo que esto no emite ni activa una póliza.</label><div className="mt-8 flex flex-wrap gap-3"><Button variant="outline" onClick={() => setStep(2)}>Editar</Button><Button onClick={send} disabled={busy}>{busy ? "Enviando…" : "Enviar solicitud"} <Send /></Button></div></section>}
+  </div></main>;
+}
+
+function Field({ label, name, type = "text", value = "", set, required = false }: { label: string; name: string; type?: string; value?: string | undefined; set: (n: string, v: string) => void; required?: boolean }) { return <div><Label htmlFor={name}>{label}</Label><Input id={name} type={type} value={value} required={required} onChange={(e) => set(name, e.target.value)} className="mt-2 h-11" /></div>; }
+function Choice({ label, name, options, value, set }: { label: string; name: string; options: string[]; value?: string | undefined; set: (n: string, v: string) => void }) { return <div><Label>{label}</Label><div className="mt-2 flex gap-2">{options.map((o) => <Button key={o} type="button" variant={value === o ? "default" : "outline"} onClick={() => set(name, o)}>{o}</Button>)}</div></div>; }
+function Summary({ label, value }: { label: string; value: string }) { return <div className="grid gap-1 border-b border-border py-4 last:border-0 sm:grid-cols-[180px_1fr]"><span className="text-sm text-muted-foreground">{label}</span><strong className="font-medium">{value}</strong></div>; }
