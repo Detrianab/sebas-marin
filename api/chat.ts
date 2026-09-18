@@ -1,5 +1,3 @@
-import { createDataStreamResponse } from 'ai';
-
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
@@ -46,21 +44,20 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // Usamos el generador de streams oficial de la librería 'ai' que usa tu frontend
-    const streamResponse = createDataStreamResponse({
-      execute: async (dataStream) => {
-        dataStream.writeText(reply);
-      },
-    });
-
-    const response = await streamResponse;
-    res.setHeader('Content-Type', response.headers.get('Content-Type') || 'text/plain; charset=utf-8');
+    // Configuramos las cabeceras para un stream real chunked en Node.js
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
-    
-    const text = await response.text();
-    return res.status(200).send(text);
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    // Enviamos el texto en el formato exacto del protocolo y cerramos el stream de forma activa
+    res.write(`0:${JSON.stringify(reply)}\n`);
+    res.write(`e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`);
+    res.end();
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
-    return res.status(500).json({ error: error.message || 'Error interno del servidor' });
+    if (!res.headersSent) {
+      return res.status(500).json({ error: error.message || 'Error interno del servidor' });
+    }
+    res.end();
   }
 }
