@@ -44,9 +44,14 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // Devolvemos texto plano para que el hook useChat lo lea de inmediato
+    // ESTO TE PERMITIRÁ VER LA RESPUESTA DE GEMINI EN LOS LOGS DE VERCEL
+    console.log(">>> LO QUE RESPONDIO GEMINI:", reply);
+
+    // Formato de streaming compatible con el componente de la página
+    const aiSdkStreamChunk = `0:${JSON.stringify(reply)}\n`;
+
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    return res.status(200).send(reply);
+    return res.status(200).send(aiSdkStreamChunk);
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
     return res.status(500).json({ error: error.message || 'Error interno del servidor' });
