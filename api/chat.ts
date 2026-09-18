@@ -22,7 +22,7 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    // Usamos v1beta con gemini-1.5-flash, que es la ruta correcta para este modelo
+    // Usamos estrictamente v1beta para gemini-1.5-flash
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
@@ -47,7 +47,7 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     console.log(">>> RESPUESTA EXITOSA DE GEMINI:", reply);
 
-    // Formato exacto de streaming compatible con el frontend
+    // Formato de streaming compatible con el frontend
     const aiSdkStreamChunk = `0:${JSON.stringify(reply)}\n`;
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
