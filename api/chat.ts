@@ -1,26 +1,16 @@
-export const config = {
-  runtime: 'edge',
-};
-
-export default async function handler(req: Request) {
+export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Método no permitido' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(405).json({ error: 'Método no permitido' });
   }
 
   try {
-    const body = await req.json();
+    const body = req.body || {};
     const messages = body.messages || (body.prompt ? [{ role: 'user', content: body.prompt }] : []);
     
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API Key de Google no configurada en Vercel' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(500).json({ error: 'API Key de Google no configurada en Vercel' });
     }
 
     const contents = messages.map((m: any) => ({
@@ -54,37 +44,18 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // Verificamos en los logs que se generó
-    console.log(">>> RESPUESTA ENVIADA A LA UI:", reply);
+    console.log(">>> RESPUESTA EXITOSA DE GEMINI:", reply);
 
-    // Creamos el flujo de datos cumpliendo estrictamente el Data Stream Protocol v1 de Vercel AI SDK
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      start(controller) {
-        // 1. Enviamos el bloque de texto con el prefijo 0:
-        const textChunk = `0:${JSON.stringify(reply)}\n`;
-        controller.enqueue(encoder.encode(textChunk));
+    // Configuramos las cabeceras exactas para el protocolo de streaming del SDK de Vercel
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
 
-        // 2. Enviamos el marcador de finalización obligatorio con el prefijo e:
-        const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`;
-        controller.enqueue(encoder.encode(finishChunk));
+    // Enviamos el bloque de texto (0:) y el marcador de finalización (e:)
+    const streamPayload = `0:${JSON.stringify(reply)}\ne:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`;
 
-        // 3. Cerramos el stream correctamente
-        controller.close();
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1',
-      },
-    });
+    return res.status(200).send(streamPayload);
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
-    return new Response(JSON.stringify({ error: error.message || 'Error interno del servidor' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(500).json({ error: error.message || 'Error interno del servidor' });
   }
 }
