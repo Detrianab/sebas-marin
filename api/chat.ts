@@ -22,9 +22,9 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    // Usamos el endpoint v1 oficial y estable con gemini-1.5-flash
+    // Usamos v1beta con gemini-1.5-flash, que es la ruta correcta para este modelo
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,10 +45,9 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // AQUÍ VERÁS NUEVAMENTE LA RESPUESTA DE GEMINI EN LOS LOGS DE VERCEL
-    console.log(">>> LO QUE RESPONDIO GEMINI:", reply);
+    console.log(">>> RESPUESTA EXITOSA DE GEMINI:", reply);
 
-    // Formato exacto que funcionó a la perfección
+    // Formato exacto de streaming compatible con el frontend
     const aiSdkStreamChunk = `0:${JSON.stringify(reply)}\n`;
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
