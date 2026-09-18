@@ -44,10 +44,7 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // ESTO TE PERMITIRÁ VER LA RESPUESTA DE GEMINI EN LOS LOGS DE VERCEL
-    console.log(">>> LO QUE RESPONDIO GEMINI:", reply);
-
-    // Formato de streaming compatible con el componente de la página
+    // Formato exacto de Data Stream Protocol del SDK de Vercel (línea 0:)
     const aiSdkStreamChunk = `0:${JSON.stringify(reply)}\n`;
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
