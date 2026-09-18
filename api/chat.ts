@@ -1,5 +1,4 @@
-import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createDataStreamResponse } from 'ai';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -16,19 +15,50 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ error: 'API Key de Google no configurada en Vercel' });
     }
 
+    const contents = messages.map((m: any) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: typeof m.content === 'string' ? m.content : m.parts?.[0]?.text || '' }],
+    }));
+
     const systemPrompt = `Eres "Asesor Sabas Marín", el asistente digital oficial de Sabas Marín Corredor de la Actividad Aseguradora. 
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    // Usamos el SDK oficial de Vercel AI para conectar con Gemini y transmitir el stream
-    const result = await streamText({
-      model: google('gemini-1.5-flash', { apiKey }),
-      system: systemPrompt,
-      messages: messages,
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: systemPrompt }],
+          },
+          contents: contents,
+        }),
+      }
+    );
+
+    const data = await geminiRes.json();
+
+    if (!geminiRes.ok) {
+      throw new Error(data.error?.message || 'Error al comunicarse con Google Gemini');
+    }
+
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
+
+    // Usamos el generador de streams oficial de la librería 'ai' que usa tu frontend
+    const streamResponse = createDataStreamResponse({
+      execute: async (dataStream) => {
+        dataStream.writeText(reply);
+      },
     });
 
-    // Esto envía el flujo de datos exacto que el hook useChat de tu página web sabe leer y pintar
-    result.pipeDataStreamToResponse(res);
+    const response = await streamResponse;
+    res.setHeader('Content-Type', response.headers.get('Content-Type') || 'text/plain; charset=utf-8');
+    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
+    
+    const text = await response.text();
+    return res.status(200).send(text);
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
     return res.status(500).json({ error: error.message || 'Error interno del servidor' });
