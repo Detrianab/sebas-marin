@@ -44,7 +44,12 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    return res.status(200).json({ reply });
+    // Enviamos todas las variantes para que el frontend la reciba sin importar qué nombre busque
+    return res.status(200).json({ 
+      reply: reply, 
+      message: reply, 
+      text: reply 
+    });
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
     return res.status(500).json({ error: error.message || 'Error interno del servidor' });
