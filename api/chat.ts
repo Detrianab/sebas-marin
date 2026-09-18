@@ -22,8 +22,9 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
+    // Usamos el modelo exigido por Google: gemini-3.6-flash
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,12 +45,12 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // Configuramos las cabeceras para un stream real chunked en Node.js
+    // Configuramos las cabeceras para el stream en tiempo real
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
     res.setHeader('Transfer-Encoding', 'chunked');
 
-    // Enviamos el texto en el formato exacto del protocolo y cerramos el stream de forma activa
+    // Enviamos el texto en el formato del protocolo y cerramos el stream
     res.write(`0:${JSON.stringify(reply)}\n`);
     res.write(`e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`);
     res.end();
