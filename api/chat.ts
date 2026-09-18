@@ -54,12 +54,22 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // Creamos un flujo de datos real (ReadableStream) compatible con DefaultChatTransport
+    // Verificamos en los logs que se generó
+    console.log(">>> RESPUESTA ENVIADA A LA UI:", reply);
+
+    // Creamos el flujo de datos cumpliendo estrictamente el Data Stream Protocol v1 de Vercel AI SDK
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        const chunk = `0:${JSON.stringify(reply)}\n`;
-        controller.enqueue(encoder.encode(chunk));
+        // 1. Enviamos el bloque de texto con el prefijo 0:
+        const textChunk = `0:${JSON.stringify(reply)}\n`;
+        controller.enqueue(encoder.encode(textChunk));
+
+        // 2. Enviamos el marcador de finalización obligatorio con el prefijo e:
+        const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`;
+        controller.enqueue(encoder.encode(finishChunk));
+
+        // 3. Cerramos el stream correctamente
         controller.close();
       },
     });
