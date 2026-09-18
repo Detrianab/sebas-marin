@@ -10,8 +10,6 @@ export default async function handler(request: Request) {
 
   try {
     const body = await request.json();
-    
-    // Protección por si el frontend manda 'messages' o 'prompt' o viene vacío
     const messages = body.messages || (body.prompt ? [{ role: 'user', content: body.prompt }] : []);
     
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
