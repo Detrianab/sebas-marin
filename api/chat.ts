@@ -1,5 +1,5 @@
 export default async function handler(req: any, res: any) {
-  console.log("=== INICIO DE /api/chat ===");
+  console.log("=== INICIO DE /api/chat (MODO JSON) ===");
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
@@ -12,7 +12,7 @@ export default async function handler(req: any, res: any) {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error("ERROR CRÍTICO: Falta la API Key de Google.");
+      console.error("ERROR: API Key no configurada.");
       return res.status(500).json({ error: 'API Key de Google no configurada en Vercel' });
     }
 
@@ -25,9 +25,8 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    console.log("Conectando con Google Gemini usando el modelo validado gemini-3.6-flash...");
+    console.log("Consultando a Gemini (gemini-3.6-flash)...");
 
-    // Usamos la combinación exacta que demostró funcionar en los logs
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
       {
@@ -43,30 +42,25 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
     );
 
     const data = await geminiRes.json();
-    console.log("Estado de respuesta HTTP de Google:", geminiRes.status);
+    console.log("Estado HTTP de Gemini:", geminiRes.status);
 
     if (!geminiRes.ok) {
-      console.error("Detalle del error de Google:", JSON.stringify(data));
       throw new Error(data.error?.message || 'Error al comunicarse con Google Gemini');
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
-    console.log(">>> TEXTO GENERADO EXITOSAMENTE:", reply.substring(0, 60) + "...");
+    console.log(">>> TEXTO LISTO PARA ENVIAR A LA PANTALLA:", reply.substring(0, 60) + "...");
 
-    // Configuramos las cabeceras para el stream en tiempo real exigido por el frontend
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
-    res.setHeader('Transfer-Encoding', 'chunked');
+    // Devolvemos un JSON completo cubriendo todas las propiedades posibles que la UI pueda buscar
+    return res.status(200).json({
+      reply: reply,
+      message: reply,
+      content: reply,
+      text: reply
+    });
 
-    // Enviamos el stream estructurado y cerramos la conexión
-    res.write(`0:${JSON.stringify(reply)}\n`);
-    res.write(`e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`);
-    res.end();
   } catch (error: any) {
-    console.error('EXCEPCIÓN CAPTURADA EN /api/chat:', error.message || error);
-    if (!res.headersSent) {
-      return res.status(500).json({ error: error.message || 'Error interno del servidor' });
-    }
-    res.end();
+    console.error('EXCEPCIÓN EN /api/chat:', error.message || error);
+    return res.status(500).json({ error: error.message || 'Error interno del servidor' });
   }
 }
