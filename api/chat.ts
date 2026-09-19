@@ -1,6 +1,4 @@
 export default async function handler(req: any, res: any) {
-  console.log("=== INICIO DE /api/chat (MODO JSON) ===");
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
@@ -12,7 +10,6 @@ export default async function handler(req: any, res: any) {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error("ERROR: API Key no configurada.");
       return res.status(500).json({ error: 'API Key de Google no configurada en Vercel' });
     }
 
@@ -24,8 +21,6 @@ export default async function handler(req: any, res: any) {
     const systemPrompt = `Eres "Asesor Sabas Marín", el asistente digital oficial de Sabas Marín Corredor de la Actividad Aseguradora. 
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
-
-    console.log("Consultando a Gemini (gemini-3.6-flash)...");
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
@@ -42,25 +37,34 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
     );
 
     const data = await geminiRes.json();
-    console.log("Estado HTTP de Gemini:", geminiRes.status);
 
     if (!geminiRes.ok) {
       throw new Error(data.error?.message || 'Error al comunicarse con Google Gemini');
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
-    console.log(">>> TEXTO LISTO PARA ENVIAR A LA PANTALLA:", reply.substring(0, 60) + "...");
 
-    // Devolvemos un JSON completo cubriendo todas las propiedades posibles que la UI pueda buscar
+    console.log(">>> ENVIANDO RESPUESTA UNIVERSAL A LA UI:", reply.substring(0, 50));
+
+    // Objeto JSON universal que cubre el 100% de los formatos que una interfaz web suele buscar
     return res.status(200).json({
-      reply: reply,
-      message: reply,
+      role: 'assistant',
       content: reply,
-      text: reply
+      message: reply,
+      reply: reply,
+      text: reply,
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: reply
+          }
+        }
+      ]
     });
 
   } catch (error: any) {
-    console.error('EXCEPCIÓN EN /api/chat:', error.message || error);
+    console.error('Error detallado en /api/chat:', error);
     return res.status(500).json({ error: error.message || 'Error interno del servidor' });
   }
 }
