@@ -1,5 +1,3 @@
-import { createDataStreamResponse } from 'ai';
-
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
@@ -24,7 +22,7 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    // Usamos el modelo validado gemini-3.6-flash
+    // Conectamos con el modelo validado gemini-3.6-flash
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
       {
@@ -47,24 +45,23 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    console.log(">>> RESPUESTA EXITOSA CON GEMINI-3.6-FLASH:", reply.substring(0, 50));
+    console.log(">>> TEXTO GENERADO EXITOSAMENTE:", reply.substring(0, 50) + "...");
 
-    // Empaquetamos la respuesta con createDataStreamResponse para DefaultChatTransport
-    const streamResponse = createDataStreamResponse({
-      execute: async (dataStream) => {
-        dataStream.writeText(reply);
-      },
-    });
-
-    const response = await streamResponse;
-    res.setHeader('Content-Type', response.headers.get('Content-Type') || 'text/plain; charset=utf-8');
+    // Configuramos las cabeceras del protocolo de streaming v1 de Vercel AI SDK
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
-    
-    const text = await response.text();
-    return res.status(200).send(text);
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    // Enviamos el chunk de texto y el chunk de finalización exigidos por useChat
+    res.write(`0:${JSON.stringify(reply)}\n`);
+    res.write(`e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`);
+    res.end();
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
-    return res.status(500).json({ error: error.message || 'Error interno del servidor' });
+    if (!res.headersSent) {
+      return res.status(500).json({ error: error.message || 'Error interno del servidor' });
+    }
+    res.end();
   }
 }
