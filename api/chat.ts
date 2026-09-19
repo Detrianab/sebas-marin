@@ -1,59 +1,25 @@
+import { google } from '@ai-sdk/google';
+import { streamText } from 'ai';
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
   try {
-    const body = req.body || {};
-    const messages = body.messages || (body.prompt ? [{ role: 'user', content: body.prompt }] : []);
-    
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    const { messages } = req.body || {};
 
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API Key de Google no configurada en Vercel' });
-    }
-
-    const contents = messages.map((m: any) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: typeof m.content === 'string' ? m.content : m.parts?.[0]?.text || '' }],
-    }));
-
-    const systemPrompt = `Eres "Asesor Sabas Marín", el asistente digital oficial de Sabas Marín Corredor de la Actividad Aseguradora. 
+    // Usamos el conector oficial de Google AI SDK para evitar errores de endpoints y versiones
+    const result = await streamText({
+      model: google('gemini-1.5-flash'),
+      system: `Eres "Asesor Sabas Marín", el asistente digital oficial de Sabas Marín Corredor de la Actividad Aseguradora. 
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
-ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
+ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`,
+      messages: messages || [],
+    });
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }],
-          },
-          contents: contents,
-        }),
-      }
-    );
-
-    const data = await geminiRes.json();
-
-    if (!geminiRes.ok) {
-      throw new Error(data.error?.message || 'Error al comunicarse con Google Gemini');
-    }
-
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
-
-    // Configuramos las cabeceras para Streaming Chunked en Node.js (SIN Edge)
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    // Enviamos el stream en el formato exacto que DefaultChatTransport de floating-advisor procesa
-    res.write(`0:${JSON.stringify(reply)}\n`);
-    res.write(`e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`);
-    res.end();
-
+    // Transmite el stream nativamente en el formato exacto que floating-advisor.tsx (useChat) espera
+    result.pipeDataStreamToResponse(res);
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
     if (!res.headersSent) {
