@@ -1,3 +1,5 @@
+import { createDataStreamResponse } from 'ai';
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
@@ -22,9 +24,9 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    // Usamos gemini-1.5-flash sobre v1beta, el cual es altamente estable
+    // Usamos el modelo validado gemini-3.6-flash
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,32 +47,24 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // Configuramos las cabeceras para el Data Stream Protocol v1 en Node.js
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
-    res.setHeader('Transfer-Encoding', 'chunked');
+    console.log(">>> RESPUESTA EXITOSA CON GEMINI-3.6-FLASH:", reply.substring(0, 50));
 
-    // Enviamos el texto y el marcador de finalización que floating-advisor espera
-    res.write(`0:${JSON.stringify(reply)}\n`);
-    res.write(`e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`);
-    res.end();
+    // Empaquetamos la respuesta con createDataStreamResponse para DefaultChatTransport
+    const streamResponse = createDataStreamResponse({
+      execute: async (dataStream) => {
+        dataStream.writeText(reply);
+      },
+    });
+
+    const response = await streamResponse;
+    res.setHeader('Content-Type', response.headers.get('Content-Type') || 'text/plain; charset=utf-8');
+    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
+    
+    const text = await response.text();
+    return res.status(200).send(text);
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
-    
-    // Si Google bota error de alta demanda, enviamos un mensaje legible al chat en lugar de romper la UI
-    const errorText = error.message.includes('high demand')
-      ? 'El servicio está experimentando alta demanda temporal. Por favor, intenta de nuevo en unos segundos.'
-      : 'Lo siento, ocurrió un error procesando tu consulta.';
-
-    if (!res.headersSent) {
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
-      res.write(`0:${JSON.stringify(errorText)}\n`);
-      res.write(`e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`);
-      res.end();
-    } else {
-      res.end();
-    }
+    return res.status(500).json({ error: error.message || 'Error interno del servidor' });
   }
 }
