@@ -1,16 +1,28 @@
-export default async function handler(req: any, res: any) {
+import { createDataStreamResponse } from 'ai';
+
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(req: Request) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método no permitido' });
+    return new Response(JSON.stringify({ error: 'Método no permitido' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
-    const body = req.body || {};
+    const body = await req.json().catch(() => ({}));
     const messages = body.messages || (body.prompt ? [{ role: 'user', content: body.prompt }] : []);
     
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: 'API Key de Google no configurada en Vercel' });
+      return new Response(JSON.stringify({ error: 'API Key de Google no configurada en Vercel' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const contents = messages.map((m: any) => ({
@@ -44,21 +56,18 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // Configuramos las cabeceras para streaming compatible con floating-advisor.tsx
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    // Enviamos el texto en el formato de stream que el SDK de la UI espera
-    res.write(`0:${JSON.stringify(reply)}\n`);
-    res.write(`e:{"finishReason":"stop","usage":{"promptTokens":10, "completionTokens":10}}\n`);
-    res.end();
+    // Creamos la respuesta de stream oficial compatible con DefaultChatTransport de floating-advisor.tsx
+    return createDataStreamResponse({
+      execute: async (dataStream) => {
+        dataStream.writeText(reply);
+      },
+    });
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
-    if (!res.headersSent) {
-      return res.status(500).json({ error: error.message || 'Error interno del servidor' });
-    }
-    res.end();
+    return new Response(JSON.stringify({ error: error.message || 'Error interno del servidor' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
