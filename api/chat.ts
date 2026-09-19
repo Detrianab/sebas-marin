@@ -44,27 +44,21 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    console.log(">>> ENVIANDO RESPUESTA UNIVERSAL A LA UI:", reply.substring(0, 50));
+    // Configuramos las cabeceras para Streaming Chunked en Node.js (SIN Edge)
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
+    res.setHeader('Transfer-Encoding', 'chunked');
 
-    // Objeto JSON universal que cubre el 100% de los formatos que una interfaz web suele buscar
-    return res.status(200).json({
-      role: 'assistant',
-      content: reply,
-      message: reply,
-      reply: reply,
-      text: reply,
-      choices: [
-        {
-          message: {
-            role: 'assistant',
-            content: reply
-          }
-        }
-      ]
-    });
+    // Enviamos el stream en el formato exacto que DefaultChatTransport de floating-advisor procesa
+    res.write(`0:${JSON.stringify(reply)}\n`);
+    res.write(`e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`);
+    res.end();
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
-    return res.status(500).json({ error: error.message || 'Error interno del servidor' });
+    if (!res.headersSent) {
+      return res.status(500).json({ error: error.message || 'Error interno del servidor' });
+    }
+    res.end();
   }
 }
