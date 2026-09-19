@@ -1,28 +1,16 @@
-import { createDataStreamResponse } from 'ai';
-
-export const config = {
-  runtime: 'edge',
-};
-
-export default async function handler(req: Request) {
+export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Método no permitido' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(405).json({ error: 'Método no permitido' });
   }
 
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = req.body || {};
     const messages = body.messages || (body.prompt ? [{ role: 'user', content: body.prompt }] : []);
     
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API Key de Google no configurada en Vercel' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(500).json({ error: 'API Key de Google no configurada en Vercel' });
     }
 
     const contents = messages.map((m: any) => ({
@@ -34,8 +22,9 @@ export default async function handler(req: Request) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
+    // Usamos gemini-1.5-flash sobre v1beta, el cual es altamente estable
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,18 +45,32 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
 
-    // Creamos la respuesta de stream oficial compatible con DefaultChatTransport de floating-advisor.tsx
-    return createDataStreamResponse({
-      execute: async (dataStream) => {
-        dataStream.writeText(reply);
-      },
-    });
+    // Configuramos las cabeceras para el Data Stream Protocol v1 en Node.js
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    // Enviamos el texto y el marcador de finalización que floating-advisor espera
+    res.write(`0:${JSON.stringify(reply)}\n`);
+    res.write(`e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":10}}\n`);
+    res.end();
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
-    return new Response(JSON.stringify({ error: error.message || 'Error interno del servidor' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    
+    // Si Google bota error de alta demanda, enviamos un mensaje legible al chat en lugar de romper la UI
+    const errorText = error.message.includes('high demand')
+      ? 'El servicio está experimentando alta demanda temporal. Por favor, intenta de nuevo en unos segundos.'
+      : 'Lo siento, ocurrió un error procesando tu consulta.';
+
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
+      res.write(`0:${JSON.stringify(errorText)}\n`);
+      res.write(`e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`);
+      res.end();
+    } else {
+      res.end();
+    }
   }
 }
