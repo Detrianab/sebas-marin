@@ -22,7 +22,6 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    // Conectamos con el modelo validado gemini-3.6-flash
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
       {
@@ -44,21 +43,12 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
+    console.log(">>> JSON ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
 
-    // Configuramos las cabeceras obligatorias del protocolo de streaming v1
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('X-Vercel-AI-Data-Stream', 'v1');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    // Enviamos el stream en el formato exacto (0:) que el frontend espera
-    res.write(`0:${JSON.stringify(reply)}\n`);
-    res.end();
+    return res.status(200).json({ reply });
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
-    if (!res.headersSent) {
-      return res.status(500).json({ error: error.message || 'Error interno del servidor' });
-    }
-    res.end();
+    return res.status(500).json({ error: error.message || 'Error interno del servidor' });
   }
 }
