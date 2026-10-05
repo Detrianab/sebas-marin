@@ -1,7 +1,14 @@
-import blueLogo from "@/assets/sabas-marin-blue.png";
-import whiteLogo from "@/assets/sabas-marin-white.png";
 import { cn } from "@/lib/utils";
 
 export function BrandLogo({ inverse = false, className }: { inverse?: boolean; className?: string }) {
-  return <img src={inverse ? whiteLogo : blueLogo} alt="Sabas Marin" className={cn("h-10 w-auto object-contain", className)} />;
+  return (
+    <div className={cn("flex flex-col justify-center", className)}>
+      <span className={cn("font-display font-bold tracking-tight text-xl sm:text-2xl leading-none", inverse ? "text-primary-foreground" : "text-foreground")}>
+        Sabas Marín
+      </span>
+      <span className={cn("text-[9px] font-bold uppercase tracking-[.25em] mt-0.5", inverse ? "text-metal" : "text-primary")}>
+        Seguros
+      </span>
+    </div>
+  );
 }
