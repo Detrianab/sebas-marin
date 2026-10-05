@@ -1,15 +1,15 @@
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowRight, BadgeCheck, Quote, ShieldCheck, Sparkles } from "lucide-react";
-import heroPortrait from "@/assets/sabas-hero-2026.webp.asset.json";
-import protectionImage from "@/assets/sabas-consultation.webp.asset.json";
-import caracasLogo from "@/assets/seguros-caracas.webp.asset.json";
-import oceanicaLogo from "@/assets/oceanica-seguros.webp.asset.json";
-import internacionalLogo from "@/assets/la-internacional.webp.asset.json";
-import mercantilLogo from "@/assets/mercantil-seguros.webp.asset.json";
-import mundialLogo from "@/assets/la-mundial-seguros.webp.asset.json";
-import hispanaLogo from "@/assets/hispana-seguros.webp.asset.json";
-import constitucionLogo from "@/assets/seguros-constitucion.webp.asset.json";
+import heroPortrait from "@/assets/sabas-hero-2026.webp";
+import protectionImage from "@/assets/sabas-consultation";
+import caracasLogo from "@/assets/seguros-caracas.webp";
+import oceanicaLogo from "@/assets/oceanica-seguros.webp";
+import internacionalLogo from "@/assets/la-internacional.webp";
+import mercantilLogo from "@/assets/mercantil-seguros.webp";
+import mundialLogo from "@/assets/la-mundial-seguros.webp";
+import hispanaLogo from "@/assets/hispana-seguros.webp";
+import constitucionLogo from "@/assets/seguros-constitucion.webp.asset";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { LocationMap } from "@/components/ui/expand-map";
@@ -21,13 +21,13 @@ import { faqs, services } from "@/lib/site-data";
 const FloatingAdvisor = lazy(() => import("./floating-advisor").then((module) => ({ default: module.FloatingAdvisor })));
 const mapsUrl = "https://maps.app.goo.gl/8CdzYHN7sLWmthqJA?g_st=ipc";
 const allies = [
-  { name: "Seguros Caracas", image: caracasLogo.url },
-  { name: "Oceánica de Seguros", image: oceanicaLogo.url },
-  { name: "La Internacional de Seguros", image: internacionalLogo.url },
-  { name: "Mercantil Seguros", image: mercantilLogo.url },
-  { name: "La Mundial de Seguros", image: mundialLogo.url },
-  { name: "Hispana de Seguros", image: hispanaLogo.url },
-  { name: "Seguros Constitución", image: constitucionLogo.url },
+  { name: "Seguros Caracas", image: caracasLogo },
+  { name: "Oceánica de Seguros", image: oceanicaLogo },
+  { name: "La Internacional de Seguros", image: internacionalLogo },
+  { name: "Mercantil Seguros", image: mercantilLogo },
+  { name: "La Mundial de Seguros", image: mundialLogo },
+  { name: "Hispana de Seguros", image: hispanaLogo },
+  { name: "Seguros Constitución", image: constitucionLogo },
 ];
 
 export function HomePage() {
