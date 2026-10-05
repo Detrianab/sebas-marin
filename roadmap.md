@@ -10,3 +10,9 @@
 - [x] Corregir solapamientos y bloques visuales en móvil
 - [x] Ajustar preloader luxury a cinco segundos
 - [x] Optimizar carga y validar nuevamente en móvil y escritorio
+- [x] Aplicar los cambios del PDF: retratos, eslogan, aliados, tipos de seguros, mapa y contactos
+- [x] Revisar las nuevas secciones y enlaces en móvil y escritorio
+- [x] Restaurar la imagen anterior de portada conservando el texto actual
+- [x] Animar la banda de aseguradoras
+- [x] Sustituir nombres por los cuatro logos entregados y mantener la animación ligera
+- [x] Dar más presencia visual a los accesos de cotización en portada y formulario
