@@ -7,7 +7,8 @@ export default async function handler(req: any, res: any) {
     const body = req.body || {};
     const messages = body.messages || (body.prompt ? [{ role: 'user', content: body.prompt }] : []);
     
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    // Corregido con notación de corchetes para evitar el error TS4111
+    const apiKey = process.env['GOOGLE_GENERATIVE_AI_API_KEY'] || process.env['GEMINI_API_KEY'];
 
     if (!apiKey) {
       return res.status(500).json({ error: 'API Key de Google no configurada en Vercel' });
