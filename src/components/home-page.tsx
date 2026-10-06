@@ -81,7 +81,20 @@ export function HomePage() {
          </div>
        </section>
 
-        <section className="overflow-hidden border-y border-border bg-background py-8" aria-label="Aseguradoras aliadas"><p className="mb-7 px-5 text-center text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Aseguradoras aliadas</p><div className="logo-loop-track flex w-max items-center" aria-label={allies.map(({ name }) => name).join(", ")}>{[0, 1].map((copy) => <div key={copy} aria-hidden={copy === 1} className="flex shrink-0 items-center gap-5 px-2.5 sm:gap-10 sm:px-5">{allies.map(({ name, image }) => <div key={name} className="flex h-20 w-56 shrink-0 items-center justify-center px-3 sm:h-24 sm:w-72 sm:px-5"><img src={image} alt={copy === 0 ? name : ""} width={820} height={260} loading="lazy" decoding="async" className="max-h-full max-w-full object-contain" /></div>)}</div>)}</div></section>
+       <section className="overflow-hidden border-y border-border bg-background py-8" aria-label="Aseguradoras aliadas">
+         <p className="mb-7 px-5 text-center text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Aseguradoras aliadas</p>
+         <div className="logo-loop-track flex w-max items-center" aria-label={allies.map(({ name }) => name).join(", ")}>
+           {[0, 1].map((copy) => (
+             <div key={copy} aria-hidden={copy === 1} className="flex shrink-0 items-center gap-5 px-2.5 sm:gap-10 sm:px-5">
+               {allies.map(({ name, image }) => (
+                 <div key={`${name}-${copy}`} className="flex h-20 w-56 shrink-0 items-center justify-center px-3 sm:h-24 sm:w-72 sm:px-5">
+                   <img src={image} alt={copy === 0 ? name : ""} width={820} height={260} loading="lazy" decoding="async" className="max-h-full max-w-full object-contain" />
+                 </div>
+               ))}
+             </div>
+           ))}
+         </div>
+       </section>
 
       <section id="manifiesto" className="relative overflow-hidden px-5 py-24 sm:px-8 sm:py-32 lg:py-44">
         <span aria-hidden className="pointer-events-none absolute -left-8 top-8 select-none text-[22vw] font-semibold leading-none text-primary/[.045] sm:-left-4">Criterio</span>
@@ -122,7 +135,7 @@ export function HomePage() {
 
       <section id="ubicacion" className="px-5 py-24 sm:px-8 lg:py-36"><div className="mx-auto max-w-[90rem]"><div data-reveal className="mb-12 grid gap-6 lg:grid-cols-2"><div><p className="text-[10px] font-bold uppercase text-primary">Estamos cerca</p><h2 className="mt-5 text-4xl font-semibold sm:text-6xl">Una conversación puede cambiar cómo proteges tu futuro.</h2></div><p className="self-end text-sm leading-7 text-muted-foreground lg:justify-self-end lg:max-w-sm">Consulta la ubicación compartida y abre la ruta exacta desde tu dispositivo.</p></div><div data-reveal><LocationMap location="Sabas Marin" coordinates="Atención personalizada · Venezuela" mapsUrl={mapsUrl} /></div></div></section>
 
-      <section id="preguntas" className="bg-secondary px-5 py-24 sm:px-8 lg:py-36"><div className="mx-auto grid max-w-[90rem] gap-14 lg:grid-cols-[.75fr_1.25fr]"><div data-reveal className="lg:sticky lg:top-28 lg:self-start"><p className="text-[10px] font-bold uppercase text-primary">Antes de decidir</p><h2 className="mt-5 text-4xl font-semibold sm:text-6xl">Respuestas claras. Sin letra pequeña.</h2><p className="mt-6 max-w-sm leading-7 text-muted-foreground">¿Necesitas otra respuesta? El asesor flotante está disponible sin registro.</p><Sparkles className="mt-8 size-8 text-primary" /></div><Accordion type="single" collapsible className="border-t border-border">{faqs.map(([question, answer], index) => <AccordionItem key={question} value={`faq-${index}`}><AccordionTrigger className="py-7 text-left text-base sm:text-lg">{question}</AccordionTrigger><AccordionContent className="max-w-2xl pr-8 text-base leading-7 text-muted-foreground">{answer}</AccordionContent></AccordionItem>)}</Accordion></div></section>
+      <section id="preguntas" className="bg-secondary px-5 py-24 sm:px-8 lg:py-36"><div className="mx-auto grid max-w-[90rem] gap-14 lg:grid-cols-[.75fr_1.25fr]"><div data-reveal className="lg:sticky lg:top-28 lg:self-start"><p className="text-[10px] font-bold uppercase text-primary">Previa a la decisión</p><h2 className="mt-5 text-4xl font-semibold sm:text-6xl">Respuestas claras. Sin letra pequeña.</h2><p className="mt-6 max-w-sm leading-7 text-muted-foreground">¿Necesitas otra respuesta? El asesor flotante está disponible sin registro.</p><Sparkles className="mt-8 size-8 text-primary" /></div><Accordion type="single" collapsible className="border-t border-border">{faqs.map(([question, answer], index) => <AccordionItem key={question} value={`faq-${index}`}><AccordionTrigger className="py-7 text-left text-base sm:text-lg">{question}</AccordionTrigger><AccordionContent className="max-w-2xl pr-8 text-base leading-7 text-muted-foreground">{answer}</AccordionContent></AccordionItem>)}</Accordion></div></section>
     </main>
     <CinematicFooter />
     <Suspense fallback={null}><FloatingAdvisor /></Suspense>
@@ -140,4 +153,4 @@ function Metric({ value, label, hint }: { value: string; label: string; hint: st
   );
 }
 function Value({ icon: Icon, title, text }: { icon: typeof ShieldCheck; title: string; text: string }) { return <div className="border-l border-primary pl-5"><Icon className="size-6 text-primary" /><h3 className="mt-4 font-semibold">{title}</h3><p className="mt-2 text-sm text-muted-foreground">{text}</p></div>; }
-function InsuranceGroup({ number, title, items }: { number: string; title: string; items: string[] }) { return <div className="bg-background p-7 sm:p-9"><span className="text-xs font-bold text-primary">{number} /</span><h3 className="mt-6 text-2xl font-semibold">{title}</h3><ul className="mt-7 space-y-4 text-sm leading-6 text-muted-foreground">{items.link((item: string) => <Link key={item} ...>{item}</Link> || <li key={item} className="border-l border-primary/40 pl-4">{item}</li>)}</ul></div>; }
+function InsuranceGroup({ number, title, items }: { number: string; title: string; items: string[] }) { return <div className="bg-background p-7 sm:p-9"><span className="text-xs font-bold text-primary">{number} /</span><h3 className="mt-6 text-2xl font-semibold">{title}</h3><ul className="mt-7 space-y-4 text-sm leading-6 text-muted-foreground">{items.map((item) => <li key={item} className="border-l border-primary/40 pl-4">{item}</li>)}</ul></div>; }
