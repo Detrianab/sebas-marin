@@ -24,28 +24,51 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
-      {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+    const payload = JSON.stringify({
+      system_instruction: {
+        parts: [{ text: systemPrompt }],
+      },
+      contents: contents,
+    });
+
+    let data: any = null;
+    let success = false;
+    let retries = 3;
+    let delay = 1000;
+
+    for (let i = 0; i <= retries; i++) {
+      const geminiRes = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }],
-          },
-          contents: contents,
-        }),
+        body: payload,
+      });
+
+      data = await geminiRes.json();
+
+      if (geminiRes.ok) {
+        success = true;
+        break;
       }
-    );
 
-    const data = await geminiRes.json();
+      const errMsg = data?.error?.message || '';
+      const isHighDemand = errMsg.includes('high demand') || geminiRes.status === 503 || geminiRes.status === 429;
 
-    if (!geminiRes.ok) {
-      throw new Error(data.error?.message || 'Error al comunicarse con Google Gemini');
+      if (isHighDemand && i < retries) {
+        console.warn(`[WARN] Intento ${i + 1} falló por alta demanda. Reintentando en ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2; // Backoff exponencial
+      } else {
+        break;
+      }
+    }
+
+    if (!success) {
+      throw new Error(data?.error?.message || 'El servicio de IA está experimentando alta demanda temporal. Intenta de nuevo en unos segundos.');
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
-    console.log(">>> JSON ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
+    console.log(">>> RESPUESTA ENVIADA EXITOSAMENTE:", reply.substring(0, 50));
 
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).send(JSON.stringify({ reply }));
