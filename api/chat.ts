@@ -1,7 +1,9 @@
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.setHeader('Content-Type', 'application/json');
-    return res.status(405).send(JSON.stringify({ error: 'Método no permitido' }));
+    res.statusCode = 405;
+    res.end(JSON.stringify({ error: 'Método no permitido' }));
+    return;
   }
 
   try {
@@ -12,13 +14,25 @@ export default async function handler(req: any, res: any) {
 
     if (!apiKey) {
       res.setHeader('Content-Type', 'application/json');
-      return res.status(500).send(JSON.stringify({ error: 'API Key de Google no configurada en Vercel' }));
+      res.statusCode = 500;
+      res.end(JSON.stringify({ error: 'API Key de Google no configurada en Vercel' }));
+      return;
     }
 
-    const contents = messages.map((m: any) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: typeof m.content === 'string' ? m.content : m.parts?.[0]?.text || '' }],
-    }));
+    const contents = messages.map((m: any) => {
+      let text = '';
+      if (typeof m.content === 'string') {
+        text = m.content;
+      } else if (Array.isArray(m.parts)) {
+        text = m.parts.map((p: any) => p.text || (typeof p === 'string' ? p : '')).join(' ');
+      } else if (typeof m.text === 'string') {
+        text = m.text;
+      }
+      return {
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: text || 'Hola' }]
+      };
+    });
 
     const systemPrompt = `Eres "Asesor Sabas Marín", el asistente digital oficial de Sabas Marín Corredor de la Actividad Aseguradora. 
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
@@ -55,9 +69,8 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
       const isHighDemand = errMsg.includes('high demand') || geminiRes.status === 503 || geminiRes.status === 429;
 
       if (isHighDemand && i < retries) {
-        console.warn(`[WARN] Intento ${i + 1} falló por alta demanda. Reintentando en ${delay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
-        delay *= 2; // Backoff exponencial
+        delay *= 2;
       } else {
         break;
       }
@@ -68,14 +81,17 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
-    console.log(">>> RESPUESTA ENVIADA EXITOSAMENTE:", reply.substring(0, 50));
+    console.log(">>> STREAM ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
 
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(200).send(JSON.stringify({ reply }));
+    // Formato de protocolo de flujo de datos de Vercel AI SDK (DefaultChatTransport)
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.statusCode = 200;
+    res.end(`0:${JSON.stringify(reply)}\n`);
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
     res.setHeader('Content-Type', 'application/json');
-    return res.status(500).send(JSON.stringify({ error: error.message || 'Error interno del servidor' }));
+    res.statusCode = 500;
+    res.end(JSON.stringify({ error: error.message || 'Error interno del servidor' }));
   }
 }
