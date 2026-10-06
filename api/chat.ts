@@ -1,6 +1,7 @@
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método no permitido' });
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(405).send(JSON.stringify({ error: 'Método no permitido' }));
   }
 
   try {
@@ -10,7 +11,8 @@ export default async function handler(req: any, res: any) {
     const apiKey = process.env['GOOGLE_GENERATIVE_AI_API_KEY'] || process.env['GEMINI_API_KEY'];
 
     if (!apiKey) {
-      return res.status(500).json({ error: 'API Key de Google no configurada en Vercel' });
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(500).send(JSON.stringify({ error: 'API Key de Google no configurada en Vercel' }));
     }
 
     const contents = messages.map((m: any) => ({
@@ -45,10 +47,12 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
     console.log(">>> JSON ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
 
-    return res.status(200).json({ reply });
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(200).send(JSON.stringify({ reply }));
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
-    return res.status(500).json({ error: error.message || 'Error interno del servidor' });
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).send(JSON.stringify({ error: error.message || 'Error interno del servidor' }));
   }
 }
