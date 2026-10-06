@@ -22,7 +22,6 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    // Usando estrictamente el modelo requerido por Google: gemini-3.8-flash
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
       {
@@ -44,10 +43,9 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
-    console.log(">>> RESPUESTA ENVIADA EXITOSAMENTE:", reply.substring(0, 50));
+    console.log(">>> JSON ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
 
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    return res.status(200).send(reply);
+    return res.status(200).json({ reply });
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
