@@ -22,18 +22,18 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    // Uso del endpoint oficial estable 'v1' con respaldo a gemini-pro
-    const endpoints = [
-      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-      'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent'
+    const targets = [
+      { url: 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent', model: 'gemini-1.5-flash (v1)' },
+      { url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', model: 'gemini-2.0-flash (v1beta)' },
+      { url: 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent', model: 'gemini-1.5-pro (v1)' }
     ];
 
     let data = null;
     let geminiRes = null;
 
-    for (const endpoint of endpoints) {
-      geminiRes = await fetch(`${endpoint}?key=${apiKey}`, {
+    for (const target of targets) {
+      console.log(`Intentando con endpoint/modelo: ${target.model}`);
+      geminiRes = await fetch(`${target.url}?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -45,7 +45,12 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
       });
       
       data = await geminiRes.json();
-      if (geminiRes.ok) break;
+      if (geminiRes.ok) {
+        console.log(`Éxito con ${target.model}`);
+        break;
+      } else {
+        console.warn(`Falló ${target.model}:`, data?.error?.message);
+      }
     }
 
     if (!geminiRes || !geminiRes.ok) {
