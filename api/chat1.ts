@@ -28,9 +28,12 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
+    // Lista de modelos oficiales ordenados por disponibilidad y velocidad
     const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-3.8-flash'];
+    
+    let data: any = null;
     let success = false;
-    let finalReply = '¡Hola! Es un gusto saludarle en Sabas Marín Corredor de Aseguradores. ¿En qué póliza o protección le puedo orientar hoy?';
+    let finalReply = 'No se obtuvo respuesta de la IA.';
 
     for (const model of models) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -41,36 +44,34 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
         contents: contents,
       });
 
-      // Intentar con reintentos para cada modelo
-      let modelSuccess = false;
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const geminiRes = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: payload,
-          });
+      console.log(`Intentando conectar con modelo: ${model}`);
 
-          const data = await geminiRes.json();
+      try {
+        const geminiRes = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+        });
 
-          if (geminiRes.ok && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            finalReply = data.candidates[0].content.parts[0].text;
-            modelSuccess = true;
-            success = true;
-            break;
-          }
-        } catch (e) {
-          // silent retry
+        data = await geminiRes.json();
+
+        if (geminiRes.ok) {
+          finalReply = data.candidates?.[0]?.content?.parts?.[0]?.text || finalReply;
+          success = true;
+          console.log(`Éxito con el modelo: ${model}`);
+          break;
+        } else {
+          console.warn(`Modelo ${model} no disponible o con alta demanda:`, data?.error?.message);
         }
-        if (attempt === 0) {
-          await new Promise((r) => setTimeout(r, 500));
-        }
+      } catch (err: any) {
+        console.warn(`Error al conectar con ${model}:`, err.message);
       }
-
-      if (success) break;
     }
 
-    // Incluso si hay alta demanda global extrema, nunca fallamos con error 500; devolvemos una respuesta cálida de continuidad
+    if (!success) {
+      throw new Error('Todos los modelos de Gemini están experimentando alta demanda en este momento. Por favor intenta de nuevo en unos segundos.');
+    }
+
     console.log(">>> RESPUESTA ENVIADA EXITOSAMENTE:", finalReply.substring(0, 50));
 
     res.setHeader('Content-Type', 'application/json');
@@ -80,9 +81,7 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
     res.setHeader('Content-Type', 'application/json');
-    res.statusCode = 200; // Devolvemos 200 con un mensaje amable para que el chat nunca falle visualmente en pantalla
-    res.end(JSON.stringify({ 
-      reply: '¡Hola! En este momento estamos experimentando un alto volumen de consultas, pero estoy aquí para ayudarle con sus seguros de salud, vehículos y patrimonios. ¿Cómo le gustaría que le orientemos hoy?' 
-    }));
+    res.statusCode = 500;
+    res.end(JSON.stringify({ error: error.message || 'Error interno del servidor' }));
   }
 }
