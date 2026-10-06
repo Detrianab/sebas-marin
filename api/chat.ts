@@ -7,7 +7,6 @@ export default async function handler(req: any, res: any) {
     const body = req.body || {};
     const messages = body.messages || (body.prompt ? [{ role: 'user', content: body.prompt }] : []);
     
-    // Corregido con notación de corchetes para evitar el error TS4111
     const apiKey = process.env['GOOGLE_GENERATIVE_AI_API_KEY'] || process.env['GEMINI_API_KEY'];
 
     if (!apiKey) {
@@ -24,7 +23,7 @@ ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre 
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,9 +43,11 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
-    console.log(">>> JSON ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
+    console.log(">>> TEXTO ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
 
-    return res.status(200).json({ reply });
+    // Compatibilidad directa con DefaultChatTransport en texto plano
+    res.setHeader('Content-Type', 'text/plain');
+    return res.status(200).send(reply);
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
