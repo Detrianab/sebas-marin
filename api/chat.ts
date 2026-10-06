@@ -28,54 +28,55 @@ export default async function handler(req: any, res: any) {
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
 ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-    const payload = JSON.stringify({
-      system_instruction: {
-        parts: [{ text: systemPrompt }],
-      },
-      contents: contents,
-    });
-
+    // Lista de modelos oficiales ordenados por disponibilidad y velocidad
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-3.8-flash'];
+    
     let data: any = null;
     let success = false;
-    let retries = 3;
-    let delay = 1000;
+    let finalReply = 'No se obtuvo respuesta de la IA.';
 
-    for (let i = 0; i <= retries; i++) {
-      const geminiRes = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
+    for (const model of models) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const payload = JSON.stringify({
+        system_instruction: {
+          parts: [{ text: systemPrompt }],
+        },
+        contents: contents,
       });
 
-      data = await geminiRes.json();
+      console.log(`Intentando conectar con modelo: ${model}`);
 
-      if (geminiRes.ok) {
-        success = true;
-        break;
-      }
+      try {
+        const geminiRes = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+        });
 
-      const errMsg = data?.error?.message || '';
-      const isHighDemand = errMsg.includes('high demand') || geminiRes.status === 503 || geminiRes.status === 429;
+        data = await geminiRes.json();
 
-      if (isHighDemand && i < retries) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        delay *= 2;
-      } else {
-        break;
+        if (geminiRes.ok) {
+          finalReply = data.candidates?.[0]?.content?.parts?.[0]?.text || finalReply;
+          success = true;
+          console.log(`Éxito con el modelo: ${model}`);
+          break;
+        } else {
+          console.warn(`Modelo ${model} no disponible o con alta demanda:`, data?.error?.message);
+        }
+      } catch (err: any) {
+        console.warn(`Error al conectar con ${model}:`, err.message);
       }
     }
 
     if (!success) {
-      throw new Error(data?.error?.message || 'El servicio de IA está experimentando alta demanda temporal. Intenta de nuevo en unos segundos.');
+      throw new Error('Todos los modelos de Gemini están experimentando alta demanda en este momento. Por favor intenta de nuevo en unos segundos.');
     }
 
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
-    console.log(">>> JSON ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
+    console.log(">>> RESPUESTA ENVIADA EXITOSAMENTE:", finalReply.substring(0, 50));
 
     res.setHeader('Content-Type', 'application/json');
     res.statusCode = 200;
-    res.end(JSON.stringify({ reply }));
+    res.end(JSON.stringify({ reply: finalReply }));
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
