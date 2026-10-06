@@ -19,20 +19,10 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    const contents = messages.map((m: any) => {
-      let text = '';
-      if (typeof m.content === 'string') {
-        text = m.content;
-      } else if (Array.isArray(m.parts)) {
-        text = m.parts.map((p: any) => p.text || (typeof p === 'string' ? p : '')).join(' ');
-      } else if (typeof m.text === 'string') {
-        text = m.text;
-      }
-      return {
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: text || 'Hola' }]
-      };
-    });
+    const contents = messages.map((m: any) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: typeof m.content === 'string' ? m.content : m.parts?.[0]?.text || '' }],
+    }));
 
     const systemPrompt = `Eres "Asesor Sabas Marín", el asistente digital oficial de Sabas Marín Corredor de la Actividad Aseguradora. 
 ROL: Asesor de seguros experto, cálido y profesional. Orienta al usuario sobre pólizas de salud, vehículos y patrimonios, conduciéndolo a cotizar o contactar.
@@ -81,12 +71,11 @@ ESTILO: Español formal y cercano. Respuestas breves (máximo 125 palabras).`;
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se obtuvo respuesta de la IA.';
-    console.log(">>> STREAM ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
+    console.log(">>> JSON ENVIADO EXITOSAMENTE:", reply.substring(0, 50));
 
-    // Formato de protocolo de flujo de datos de Vercel AI SDK (DefaultChatTransport)
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Type', 'application/json');
     res.statusCode = 200;
-    res.end(`0:${JSON.stringify(reply)}\n`);
+    res.end(JSON.stringify({ reply }));
 
   } catch (error: any) {
     console.error('Error detallado en /api/chat:', error);
