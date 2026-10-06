@@ -57,10 +57,10 @@ export function HomePage() {
   return <div ref={root} className="bg-background"><Preloader /><SiteHeader />
     <main>
        <section id="inicio" className="relative isolate flex min-h-[min(800px,92svh)] items-end overflow-hidden bg-luxury text-primary-foreground lg:min-h-[min(850px,92svh)]">
-         <div className="absolute inset-x-0 top-16 h-[55%] overflow-hidden lg:inset-0 lg:h-full lg:w-[66%]">
+         <div className="absolute inset-x-0 top-16 h-[55%] overflow-hidden lg:inset-0 lg:h-full lg:w-[66%] [mask-image:linear-gradient(to_bottom,black_75%,transparent_100%)] lg:[mask-image:linear-gradient(to_right,black_70%,transparent_100%)]">
            <img data-hero-image src={heroPortrait} alt="Sabas Marin en su oficina" width={1600} height={1393} fetchPriority="high" decoding="async" className="size-full object-cover object-[28%_20%] lg:object-[center_30%]" />
          </div>
-         <div aria-hidden className="hero-photo-wash pointer-events-none absolute inset-0" />
+         <div aria-hidden className="hero-photo-wash pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,var(--luxury)_0%,transparent_60%)] lg:bg-[linear-gradient(to_right,transparent_45%,var(--luxury)_100%)]" />
          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-20 h-px bg-primary-foreground/15 lg:hidden" />
          <div className="relative mx-auto grid w-full max-w-[90rem] px-5 pb-8 pt-[min(52svh,450px)] sm:px-8 lg:min-h-[min(850px,92svh)] lg:grid-cols-[48%_52%] lg:items-end lg:pb-12 lg:pt-32">
            <div className="hidden lg:block" aria-hidden />
@@ -140,4 +140,4 @@ function Metric({ value, label, hint }: { value: string; label: string; hint: st
   );
 }
 function Value({ icon: Icon, title, text }: { icon: typeof ShieldCheck; title: string; text: string }) { return <div className="border-l border-primary pl-5"><Icon className="size-6 text-primary" /><h3 className="mt-4 font-semibold">{title}</h3><p className="mt-2 text-sm text-muted-foreground">{text}</p></div>; }
-function InsuranceGroup({ number, title, items }: { number: string; title: string; items: string[] }) { return <div className="bg-background p-7 sm:p-9"><span className="text-xs font-bold text-primary">{number} /</span><h3 className="mt-6 text-2xl font-semibold">{title}</h3><ul className="mt-7 space-y-4 text-sm leading-6 text-muted-foreground">{items.map((item) => <li key={item} className="border-l border-primary/40 pl-4">{item}</li>)}</ul></div>; }
+function InsuranceGroup({ number, title, items }: { number: string; title: string; items: string[] }) { return <div className="bg-background p-7 sm:p-9"><span className="text-xs font-bold text-primary">{number} /</span><h3 className="mt-6 text-2xl font-semibold">{title}</h3><ul className="mt-7 space-y-4 text-sm leading-6 text-muted-foreground">{items.link((item: string) => <Link key={item} ...>{item}</Link> || <li key={item} className="border-l border-primary/40 pl-4">{item}</li>)}</ul></div>; }
